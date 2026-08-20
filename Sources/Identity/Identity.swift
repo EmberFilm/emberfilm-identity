@@ -1,5 +1,5 @@
 //
-//  JWTUserPayload.swift
+//  Identity.swift
 //  emberfilm-identity
 //
 //  Created by Zaid Rahhawi on 8/20/26.
@@ -17,7 +17,7 @@ import JWTKit
 ///
 /// This is the wire contract between the service that mints tokens and every service
 /// that verifies them. Add claims with new keys; never repurpose an existing key.
-public struct JWTUserPayload: JWTPayload, Sendable {
+public struct Identity: JWTPayload, Sendable {
     public let userId: UUID
     public let issuer: IssuerClaim
     public let issuedAt: IssuedAtClaim

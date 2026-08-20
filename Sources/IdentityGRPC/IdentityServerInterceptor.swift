@@ -5,10 +5,11 @@
 //  Created by Zaid Rahhawi on 8/20/26.
 //
 
-import EmberFilmIdentity
+import Identity
+import JWTKit
 import GRPCCore
 
-/// Rejects RPCs without a valid access token and binds the caller's `JWTUserPayload` for the handler.
+/// Rejects RPCs without a valid access token and binds the caller's ``Identity`` for the handler.
 ///
 /// Apply it only to the RPCs that require a caller. Registration and authentication RPCs mint
 /// the first token and must stay unauthenticated.
@@ -16,10 +17,10 @@ public struct IdentityServerInterceptor: ServerInterceptor {
     private static let headerName = "authorization"
     private static let scheme = "Bearer "
 
-    private let verifier: JWTTokenVerifier
+    private let keyCollection: JWTKeyCollection
 
-    public init(verifier: JWTTokenVerifier) {
-        self.verifier = verifier
+    public init(keyCollection: JWTKeyCollection) {
+        self.keyCollection = keyCollection
     }
 
     public func intercept<Input: Sendable, Output: Sendable>(
@@ -35,9 +36,9 @@ public struct IdentityServerInterceptor: ServerInterceptor {
         }
 
         do {
-            let identity = try await verifier.verify(String(header.dropFirst(Self.scheme.count)))
+            let identity = try await keyCollection.verify(String(header.dropFirst(Self.scheme.count)), as: Identity.self)
 
-            return try await IdentityContext.$current.withValue(identity) {
+            return try await Identity.$current.withValue(identity) {
                 try await next(request, context)
             }
         } catch {

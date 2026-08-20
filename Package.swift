@@ -9,21 +9,17 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "EmberFilmIdentity",
-            targets: ["EmberFilmIdentity"]
+            name: "Identity",
+            targets: ["Identity"]
         ),
         .library(
-            name: "EmberFilmIdentityGRPC",
-            targets: ["EmberFilmIdentityGRPC"]
+            name: "IdentityGRPC",
+            targets: ["IdentityGRPC"]
         ),
         .library(
-            name: "EmberFilmIdentityHTTP",
-            targets: ["EmberFilmIdentityHTTP"]
-        ),
-        .library(
-            name: "EmberFilmIdentitySigning",
-            targets: ["EmberFilmIdentitySigning"]
-        ),
+            name: "IdentityHTTP",
+            targets: ["IdentityHTTP"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
@@ -33,33 +29,28 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "EmberFilmIdentity",
+            name: "Identity",
             dependencies: [
                 .product(name: "JWTKit", package: "jwt-kit")
             ]
         ),
         .target(
-            name: "EmberFilmIdentityGRPC",
+            name: "IdentityGRPC",
             dependencies: [
-                "EmberFilmIdentity",
+                "Identity",
+                .product(name: "JWTKit", package: "jwt-kit"),
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
             ]
         ),
         .target(
-            name: "EmberFilmIdentityHTTP",
+            name: "IdentityHTTP",
             dependencies: [
-                "EmberFilmIdentity",
+                "Identity",
+                .product(name: "JWTKit", package: "jwt-kit"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdAuth", package: "hummingbird-auth"),
             ]
-        ),
-        .target(
-            name: "EmberFilmIdentitySigning",
-            dependencies: [
-                "EmberFilmIdentity",
-                .product(name: "JWTKit", package: "jwt-kit"),
-            ]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )
