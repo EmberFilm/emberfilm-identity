@@ -38,25 +38,32 @@ public struct IdentitySigner: Sendable {
         self.keys = keys
     }
 
-    /// Signs a token naming `subject` as the caller, valid for `expiration` from now.
+    /// The identity this signer would put in a token for `subject`, valid for `expiration` from
+    /// now.
     ///
     /// The caller states who the token is for and how long it lasts. The issuer and the issued-at
     /// are the signer's, not theirs: `iss` is a property of the service doing the signing rather
     /// than of any one token, so stating it at each call site would be the same value repeated at
     /// every one of them and wrong at whichever one drifted.
-    public func sign(
-        subject: String,
-        expiration: TimeInterval
-    ) async throws -> String {
+    ///
+    /// This is the only way to obtain an ``Identity``, which is what keeps that true — the claims
+    /// cannot be assembled anywhere else and handed to ``signIdentity(_:)``.
+    ///
+    /// It is returned rather than signed in one step because a caller usually has to report when
+    /// the token expires, and deriving that a second time would leave the token and what the
+    /// caller says about it as two readings of the clock that can disagree.
+    public func makeIdentity(subject: String, expiration: TimeInterval) -> Identity {
         let now = Date.now
 
-        let identity = Identity(
+        return Identity(
             subject: subject,
             issuer: IssuerClaim(value: configuration.issuer),
             issuedAt: IssuedAtClaim(value: now),
             expiration: ExpirationClaim(value: now.addingTimeInterval(expiration))
         )
+    }
 
-        return try await keys.sign(identity)
+    public func signIdentity(_ identity: Identity) async throws -> String {
+        try await keys.sign(identity)
     }
 }
