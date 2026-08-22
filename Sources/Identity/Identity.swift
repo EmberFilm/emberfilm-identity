@@ -13,40 +13,46 @@ import Foundation
 
 import JWTKit
 
-/// The claim set every EmberFilm access token carries.
-///
-/// This is the wire contract between the service that mints tokens and every service
-/// that verifies them. Add claims with new keys; never repurpose an existing key.
-public struct Identity: JWTPayload, Sendable {
-    public let userId: UUID
+public struct Identity: JWTPayload {
+    public let subject: String
     public let issuer: IssuerClaim
     public let issuedAt: IssuedAtClaim
     public let expiration: ExpirationClaim
-    public let email: String
 
     public init(
-        userId: UUID,
+        subject: String,
         issuer: IssuerClaim,
         issuedAt: IssuedAtClaim,
-        expiration: ExpirationClaim,
-        email: String
+        expiration: ExpirationClaim
     ) {
-        self.userId = userId
+        self.subject = subject
         self.issuer = issuer
         self.issuedAt = issuedAt
         self.expiration = expiration
-        self.email = email
     }
-
-    private enum CodingKeys: String, CodingKey {
-        case userId = "sub"
-        case issuer = "iss"
-        case issuedAt = "iat"
-        case expiration = "exp"
-        case email
+    
+    public init(
+        subject: String,
+        issuer: IssuerClaim,
+        expiration: TimeInterval
+    ) {
+        let now = Date.now
+        self.init(
+            subject: subject,
+            issuer: issuer,
+            issuedAt: IssuedAtClaim(value: now),
+            expiration: ExpirationClaim(value: now.addingTimeInterval(expiration))
+        )
     }
 
     public func verify(using algorithm: some JWTAlgorithm) throws {
         try expiration.verifyNotExpired()
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case subject = "sub"
+        case issuer = "iss"
+        case issuedAt = "iat"
+        case expiration = "exp"
     }
 }

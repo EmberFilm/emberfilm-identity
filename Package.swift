@@ -23,7 +23,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
-        .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
+        .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.3.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.26.0"),
         .package(url: "https://github.com/hummingbird-project/hummingbird-auth.git", from: "2.2.0")
     ],

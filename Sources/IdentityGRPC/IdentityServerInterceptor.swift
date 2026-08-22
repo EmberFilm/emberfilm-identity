@@ -6,21 +6,31 @@
 //
 
 import Identity
-import JWTKit
 import GRPCCore
 
-/// Rejects RPCs without a valid access token and binds the caller's ``Identity`` for the handler.
+/// Identifies the caller of an RPC from its bearer token, without requiring there to be one.
 ///
-/// Apply it only to the RPCs that require a caller. Registration and authentication RPCs mint
-/// the first token and must stay unauthenticated.
+/// Apply it to every RPC. It binds ``IdentityContext/current`` when a token is present and
+/// leaves it `nil` when there is none, which is what an unprotected RPC needs — registration
+/// and authentication mint the first token and have no caller yet. Requiring a caller is
+/// ``IsAuthenticatedInterceptor``'s job, applied to the RPCs that are protected. That is the
+/// same split as `AuthenticatorMiddleware` and `IsAuthenticatedMiddleware` on the HTTP side:
+/// identifying a caller and insisting on one are separate decisions.
+///
+/// A token that is present but does not verify is refused rather than read as anonymous.
+/// Absent and invalid are not the same thing: one is a caller who never claimed to be anyone,
+/// the other is a claim that failed. Quietly downgrading the second would turn an expired token
+/// into a silent loss of privileges on an unprotected RPC, and hide a misconfigured client
+/// whose credentials nothing ever looks at.
+///
+/// The token is bound alongside the identity because a handler has no way to reach it:
+/// `ServerContext` carries the method descriptor and the peers, not the request metadata.
+/// ``IdentityClientInterceptor`` reads it back when the handler calls another service.
 public struct IdentityServerInterceptor: ServerInterceptor {
-    private static let headerName = "authorization"
-    private static let scheme = "Bearer "
+    private let verifier: IdentityVerifier
 
-    private let keyCollection: JWTKeyCollection
-
-    public init(keyCollection: JWTKeyCollection) {
-        self.keyCollection = keyCollection
+    public init(verifier: IdentityVerifier) {
+        self.verifier = verifier
     }
 
     public func intercept<Input: Sendable, Output: Sendable>(
@@ -31,21 +41,22 @@ public struct IdentityServerInterceptor: ServerInterceptor {
             _ context: ServerContext
         ) async throws -> StreamingServerResponse<Output>
     ) async throws -> StreamingServerResponse<Output> {
-        guard let header = request.metadata[stringValues: Self.headerName].first(where: { $0.hasPrefix(Self.scheme) }) else {
-            throw RPCError(code: .unauthenticated, message: "An access token is required.")
+        guard let token = request.metadata.bearer else {
+            return try await next(request, context)
         }
 
-        do {
-            let identity = try await keyCollection.verify(String(header.dropFirst(Self.scheme.count)), as: Identity.self)
+        let identity = try await verifyIdentity(for: token)
 
-            return try await Identity.$current.withValue(identity) {
-                try await next(request, context)
-            }
+        return try await IdentityContext.withIdentity(identity, token: token) {
+            try await next(request, context)
+        }
+    }
+
+    private func verifyIdentity(for token: String) async throws -> Identity {
+        do {
+            return try await verifier.verify(token: token)
         } catch {
-            throw RPCError(
-                code: .unauthenticated,
-                message: "The access token is invalid or expired."
-            )
+            throw RPCError(code: .unauthenticated, message: "Invalid or expired token.")
         }
     }
 }
