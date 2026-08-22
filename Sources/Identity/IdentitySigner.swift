@@ -12,6 +12,10 @@ import Foundation
 #endif
 import JWTKit
 
+/// Mints access tokens for the one service that holds the private key.
+///
+/// Every other service is configured with the matching public key and an ``IdentityVerifier``,
+/// which reads a token but cannot produce one.
 public struct IdentitySigner: Sendable {
     public struct Configuration: Sendable {
         public let issuer: String
@@ -34,7 +38,25 @@ public struct IdentitySigner: Sendable {
         self.keys = keys
     }
 
-    public func sign(identity: Identity) async throws -> String {
-        try await keys.sign(identity)
+    /// Signs a token naming `subject` as the caller, valid for `expiration` from now.
+    ///
+    /// The caller states who the token is for and how long it lasts. The issuer and the issued-at
+    /// are the signer's, not theirs: `iss` is a property of the service doing the signing rather
+    /// than of any one token, so stating it at each call site would be the same value repeated at
+    /// every one of them and wrong at whichever one drifted.
+    public func sign(
+        subject: String,
+        expiration: TimeInterval
+    ) async throws -> String {
+        let now = Date.now
+
+        let identity = Identity(
+            subject: subject,
+            issuer: IssuerClaim(value: configuration.issuer),
+            issuedAt: IssuedAtClaim(value: now),
+            expiration: ExpirationClaim(value: now.addingTimeInterval(expiration))
+        )
+
+        return try await keys.sign(identity)
     }
 }
