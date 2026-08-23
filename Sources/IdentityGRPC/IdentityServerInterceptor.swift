@@ -12,10 +12,11 @@ import GRPCCore
 ///
 /// Apply it to every RPC. It binds ``IdentityContext/current`` when a token is present and
 /// leaves it `nil` when there is none, which is what an unprotected RPC needs — registration
-/// and authentication mint the first token and have no caller yet. Requiring a caller is
-/// ``IsAuthenticatedInterceptor``'s job, applied to the RPCs that are protected. That is the
-/// same split as `AuthenticatorMiddleware` and `IsAuthenticatedMiddleware` on the HTTP side:
-/// identifying a caller and insisting on one are separate decisions.
+/// and authentication mint the first token and have no caller yet. Insisting on a caller is a
+/// separate decision, left to the handler that needs one: it reads ``IdentityContext/current``
+/// and refuses a `nil` one. That is the same split as `AuthenticatorMiddleware` and
+/// `IsAuthenticatedMiddleware` on the HTTP side — identifying a caller and requiring one are
+/// not the same job.
 ///
 /// A token that is present but does not verify is refused rather than read as anonymous.
 /// Absent and invalid are not the same thing: one is a caller who never claimed to be anyone,
