@@ -41,10 +41,12 @@ public struct IdentitySigner: Sendable {
     /// The identity this signer would put in a token for `subject`, valid for `expiration` from
     /// now.
     ///
-    /// The caller states who the token is for and how long it lasts. The issuer and the issued-at
-    /// are the signer's, not theirs: `iss` is a property of the service doing the signing rather
-    /// than of any one token, so stating it at each call site would be the same value repeated at
-    /// every one of them and wrong at whichever one drifted.
+    /// The caller states who the token is for, what they may do, and how long it lasts. `role` is
+    /// theirs to state because only they have looked the subject up; this signer knows how to
+    /// attest a claim, not what is true of a user. The issuer and the issued-at are the signer's,
+    /// not theirs: `iss` is a property of the service doing the signing rather than of any one
+    /// token, so stating it at each call site would be the same value repeated at every one of
+    /// them and wrong at whichever one drifted.
     ///
     /// This is the only way to obtain an ``Identity``, which is what keeps that true — the claims
     /// cannot be assembled anywhere else and handed to ``signIdentity(_:)``.
@@ -52,11 +54,16 @@ public struct IdentitySigner: Sendable {
     /// It is returned rather than signed in one step because a caller usually has to report when
     /// the token expires, and deriving that a second time would leave the token and what the
     /// caller says about it as two readings of the clock that can disagree.
-    public func makeIdentity(subject: String, expiration: TimeInterval) -> Identity {
+    public func makeIdentity(
+        subject: String,
+        role: UserRole,
+        expiration: TimeInterval
+    ) -> Identity {
         let now = Date.now
 
         return Identity(
             subject: subject,
+            role: role,
             issuer: IssuerClaim(value: configuration.issuer),
             issuedAt: IssuedAtClaim(value: now),
             expiration: ExpirationClaim(value: now.addingTimeInterval(expiration))
