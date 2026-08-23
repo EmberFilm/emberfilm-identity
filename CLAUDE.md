@@ -10,8 +10,9 @@ request. It mints tokens in the one service allowed to, verifies them everywhere
 carries the caller from an inbound request to the outbound calls it makes.
 
 It is consumed over the network from `https://github.com/EmberFilm/emberfilm-identity.git`,
-pinned by SemVer tag — `emberfilm-authentication` currently depends on `from: "0.4.0"`. Sibling
-services live next to this directory under `emberfilm-microservices/`.
+pinned by SemVer tag — `emberfilm-authentication` and `emberfilm-users` both currently depend
+on `from: "0.5.0"`. Sibling services live next to this directory under
+`emberfilm-microservices/`.
 
 ## Layout
 
@@ -38,9 +39,10 @@ swift-format format -i -r Sources   # config in .swift-format
 There is no test target. `swift test` builds nothing and reports nothing — do not read a clean
 run as evidence that a change works.
 
-Releases are git tags (`0.1.0` … `0.4.0`). A change consumers need is not delivered until it is
-tagged and their `Package.resolved` is updated; a source edit here is invisible to
-`emberfilm-authentication` until then.
+Releases are git tags (`0.1.0` … `0.5.0`). A change consumers need is not delivered until it is
+tagged and their `Package.resolved` is updated; a source edit here is invisible to the consuming
+services until then. To verify a cross-repo change before tagging, `swift package edit
+emberfilm-identity --path ../emberfilm-identity` in the consumer, then `swift package unedit`.
 
 ## The invariants
 
@@ -57,7 +59,7 @@ the only way to obtain one, which is what makes the claims unforgeable in-proces
 be assembled elsewhere and handed to `signIdentity(_:)`. Making that `init` public would quietly
 delete the guarantee. Any new way to construct an `Identity` must go through the signer.
 
-**Minting is two calls, not one.** `makeIdentity(subject:expiration:)` then
+**Minting is two calls, not one.** `makeIdentity(subject:role:expiration:)` then
 `signIdentity(_:)`. The caller almost always has to report when the token expires, and deriving
 that separately would make the token and the caller's claim about it two readings of the clock
 that can disagree. Do not collapse them back into a `mint` convenience.
