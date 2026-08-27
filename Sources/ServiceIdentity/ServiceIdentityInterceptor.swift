@@ -7,6 +7,7 @@
 
 import GRPCCore
 import Identity
+import IdentityGRPC
 
 /// Presents the process's own identity on an outgoing RPC.
 ///

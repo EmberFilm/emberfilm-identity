@@ -10,23 +10,28 @@ request. It mints tokens in the one service allowed to, verifies them everywhere
 carries the caller from an inbound request to the outbound calls it makes.
 
 It is consumed over the network from `https://github.com/EmberFilm/emberfilm-identity.git`,
-pinned by SemVer tag — `emberfilm-authentication` and `emberfilm-users` both currently depend
-on `from: "0.5.0"`. Sibling services live next to this directory under
+pinned by SemVer tag; every service depends on it by `from:`. Sibling services live next to this directory under
 `emberfilm-microservices/`.
 
 ## Layout
 
 ```
 Sources/
-  Identity/       # transport-agnostic core: the claims, signing, verifying, the task local
-  IdentityGRPC/   # grpc-swift-2 client and server interceptors
-  IdentityHTTP/   # Hummingbird router middleware
+  Identity/         # transport-agnostic core: the claims, signing, verifying, the task local
+  IdentityGRPC/     # grpc-swift-2 client and server interceptors
+  IdentityHTTP/     # Hummingbird router middleware
+  ServiceIdentity/  # a process's own identity: session, interceptor, IssueServiceToken adapter
 ```
 
 Each directory is one SwiftPM target and one library product of the same name. `IdentityGRPC`
 and `IdentityHTTP` both depend on `Identity` and never on each other — a service links only the
 transports it actually speaks. Keep it that way: anything a new transport would need in common
 belongs in `Identity`, not in a dependency between the two.
+
+**`ServiceIdentity` is the only target that links `emberfilm-protos`.** It has to: the adapter
+that speaks `IssueServiceToken` needs the generated client. Keep the contract there and nowhere
+else — `Identity`, `IdentityGRPC` and `IdentityHTTP` must stay linkable without it, so a service
+that only verifies tokens never depends on the authentication contract.
 
 ## Commands
 

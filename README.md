@@ -15,8 +15,11 @@ edge is still the identity at the far end of the chain.
 | `Identity` | JWTKit | The `Identity` claims, `IdentitySigner`, `IdentityVerifier`, and the `IdentityContext` task local |
 | `IdentityGRPC` | `Identity`, GRPCCore | `IdentityServerInterceptor` and `IdentityClientInterceptor` |
 | `IdentityHTTP` | `Identity`, Hummingbird | `IdentityAuthenticator` router middleware |
+| `ServiceIdentity` | `Identity`, `IdentityGRPC`, `emberfilm-protos` | `ServiceIdentitySession`, `ServiceIdentityInterceptor`, and the `IssueServiceToken` adapter — for a process that calls other services as itself |
 
 Link only the transports you speak. A gRPC-only service takes `Identity` and `IdentityGRPC`.
+`ServiceIdentity` is the one product that links the authentication contract, so a service that
+only verifies tokens never pulls it in.
 
 ## Requirements
 
@@ -25,7 +28,7 @@ Swift 6.3, Swift 6 language mode, macOS 15 or later.
 ## Installation
 
 ```swift
-.package(url: "https://github.com/EmberFilm/emberfilm-identity.git", from: "0.5.0")
+.package(url: "https://github.com/EmberFilm/emberfilm-identity.git", from: "0.7.0")
 ```
 
 ```swift
@@ -169,8 +172,35 @@ let identity = IdentityContext.current?.identity
 ```
 
 Calls made outside a request — startup work, a workflow activity, a scheduled job — have no
-inbound token and go out unauthenticated rather than failing. Whether that is acceptable is the
-receiving service's decision, expressed in the RPCs it protects.
+inbound token to forward. A process that should identify itself on such calls presents its own
+identity instead; see below.
+
+## A process's own identity
+
+A worker or a service reacting to a webhook is a principal of its own kind, with the `service`
+role. It holds a credential the authentication service issued it (`service-credentials create`)
+and exchanges the secret for a short-lived token through `IssueServiceToken`. `ServiceIdentity`
+keeps that token current and presents it:
+
+```swift
+import ServiceIdentity
+
+let session = ServiceIdentitySession(
+    client: AuthenticationServiceIdentityClient(client: authenticationClient),
+    credentials: ServiceIdentityCredentials(clientId: "payments-worker", clientSecret: secret)
+)
+let usersClient = GRPCClient(
+    transport: ...,
+    interceptors: [ServiceIdentityInterceptor(session: session)]
+)
+try await session.refresh()   // at startup: a wrong secret or an unreachable issuer fails here
+```
+
+A client carrying `ServiceIdentityInterceptor` speaks as the process on every call. A process
+that also forwards callers does so through a separate client carrying `IdentityClientInterceptor`
+— one client per identity. A token within five minutes of expiry is refreshed before it is
+presented, one exchange is in flight at a time, and a token the receiver refuses is refreshed
+once and the call resent.
 
 ## Token shape
 
@@ -184,7 +214,7 @@ receiving service's decision, expressed in the RPCs it protects.
 }
 ```
 
-`role` is a `UserRole` — `user` or `admin`. It rides in the token so a service can authorize a
+`role` is a `UserRole` — `user`, `admin`, or `service`. It rides in the token so a service can authorize a
 caller without asking the users service who they are; the cost is that a change of role does not
 take effect until the token is next refreshed.
 
