@@ -18,19 +18,31 @@ extension Metadata {
     /// spelling `Bearer` would read a `bearer` header — which grpc-web clients and proxies do
     /// send — as no credential at all, and an unauthenticated caller is far harder to notice
     /// than a rejected one.
+    ///
+    /// Setting it replaces rather than adds: a second `authorization` entry would leave which
+    /// one the receiver reads down to ordering, and the server side takes the first.
     var bearer: String? {
-        guard let authorization = self[stringValues: "authorization"].first(where: { _ in true }) else {
-            return nil
+        get {
+            guard let authorization = self[stringValues: "authorization"].first(where: { _ in true }) else {
+                return nil
+            }
+
+            let parts = authorization.split(separator: " ", maxSplits: 1)
+
+            guard parts.count == 2, parts[0].lowercased() == "bearer" else {
+                return nil
+            }
+
+            let token = parts[1].drop(while: \.isWhitespace)
+
+            return token.isEmpty ? nil : String(token)
         }
-
-        let parts = authorization.split(separator: " ", maxSplits: 1)
-
-        guard parts.count == 2, parts[0].lowercased() == "bearer" else {
-            return nil
+        set {
+            if let newValue {
+                replaceOrAddString("Bearer \(newValue)", forKey: "authorization")
+            } else {
+                removeAllValues(forKey: "authorization")
+            }
         }
-
-        let token = parts[1].drop(while: \.isWhitespace)
-
-        return token.isEmpty ? nil : String(token)
     }
 }

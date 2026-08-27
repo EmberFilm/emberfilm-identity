@@ -20,9 +20,9 @@ public struct IdentityClientInterceptor: ClientInterceptor {
     public init() {}
 
     /// Calls made outside a caller's request — startup work, a workflow activity, anything with
-    /// no inbound token — go out unauthenticated rather than failing here. Whether that is
-    /// acceptable belongs to the receiving service, which says so by choosing the RPCs it
-    /// applies ``IdentityServerInterceptor`` to.
+    /// no inbound token — go out unauthenticated rather than failing here. A process that should
+    /// identify itself on such calls makes them through a separate client carrying
+    /// ``ServiceIdentityInterceptor``, which speaks as the process on every call.
     public func intercept<Input: Sendable, Output: Sendable>(
         request: StreamingClientRequest<Input>,
         context: ClientContext,
@@ -36,9 +36,7 @@ public struct IdentityClientInterceptor: ClientInterceptor {
         }
 
         var request = request
-        // Replaced rather than added: a second `authorization` entry would leave which one the
-        // receiver reads down to ordering, and the server interceptor takes the first.
-        request.metadata.replaceOrAddString("Bearer \(token)", forKey: "authorization")
+        request.metadata.bearer = token
 
         return try await next(request, context)
     }
