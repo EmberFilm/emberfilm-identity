@@ -17,4 +17,14 @@
 public enum UserRole: String, Codable, Sendable {
     case user
     case admin
+
+    /// A process acting for itself — a worker, a service reacting to a webhook — rather than a
+    /// person acting on their own account.
+    ///
+    /// The subject of such a token is the name the credential was issued under, not a user id.
+    /// An RPC that only makes sense for a person refuses this role before it reads the subject:
+    /// the role is the test, because the subject's shape proves nothing — a credential can be
+    /// issued under any name. Whether a service may reach a given RPC at all is the receiving
+    /// service's decision, made per RPC like the admin check.
+    case service
 }
