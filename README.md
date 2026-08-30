@@ -28,7 +28,7 @@ Swift 6.3, Swift 6 language mode, macOS 15 or later.
 ## Installation
 
 ```swift
-.package(url: "https://github.com/EmberFilm/emberfilm-identity.git", from: "0.7.0")
+.package(url: "https://github.com/EmberFilm/emberfilm-identity.git", from: "0.8.0")
 ```
 
 ```swift
@@ -75,10 +75,10 @@ rather than signing in one go so you can report the expiration you actually sign
 reading the clock a second time and getting a different answer.
 
 ```swift
-let identity = signer.makeIdentity(subject: userID, role: user.role, expiration: 900)
+let identity = signer.makeIdentity(subject: userId, role: user.role, expiration: 900)
 let accessToken = try await signer.signIdentity(identity)
 
-return AccessToken(value: accessToken, expiresAt: identity.expiration.value)
+return AccessToken(value: accessToken, expirationDate: identity.expiration.value)
 ```
 
 `IdentitySigner.makeIdentity` is the only way to obtain an `Identity`. The claims cannot be
@@ -103,13 +103,25 @@ let verifier = try await IdentityVerifier(
 ### gRPC
 
 Apply `IdentityServerInterceptor` to every RPC, and register `IdentityClientInterceptor` on the
-client rather than per call so a service cannot forget it.
+client rather than per call so a service cannot forget it. The `.mTLS(config:)` factories are
+the consuming service's own, one per direction, in its `Configuration` folder — every connection in
+the stack is mutually authenticated, and this package has no opinion about how.
+
+A handler that needs a caller calls one of the shared checks, which read the task local the
+interceptor bound:
+
+```swift
+try IdentityContext.requireIdentity()            // any caller
+let (identity, userId) = try IdentityContext.requireUserIdentity()   // a person, with their id parsed once
+try IdentityContext.requireAdminIdentity()       // an administrator
+try IdentityContext.requirePrivilegedIdentity()  // an administrator or a process
+```
 
 ```swift
 import IdentityGRPC
 
 let server = GRPCServer(
-    transport: .http2NIOPosix(address: .ipv4(host: host, port: port), transportSecurity: .plaintext),
+    transport: .http2NIOPosix(address: .ipv4(host: host, port: port), transportSecurity: try .mTLS(config: tlsConfig)),
     services: [myService],
     interceptorPipeline: [
         .apply(
@@ -120,7 +132,7 @@ let server = GRPCServer(
 )
 
 let usersClient = GRPCClient(
-    transport: try .http2NIOPosix(target: .dns(host: usersHost, port: usersPort), transportSecurity: .plaintext),
+    transport: try .http2NIOPosix(target: .dns(host: usersHost, port: usersPort), transportSecurity: try .mTLS(config: tlsConfig)),
     interceptors: [IdentityClientInterceptor()]
 )
 ```
@@ -187,7 +199,7 @@ import ServiceIdentity
 
 let session = ServiceIdentitySession(
     client: AuthenticationServiceIdentityClient(client: authenticationClient),
-    credentials: ServiceIdentityCredentials(clientId: "payments-worker", clientSecret: secret)
+    credentials: ServiceIdentityCredentials(clientId: "billing-worker", clientSecret: secret)
 )
 let usersClient = GRPCClient(
     transport: ...,

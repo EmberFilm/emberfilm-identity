@@ -13,6 +13,17 @@ It is consumed over the network from `https://github.com/EmberFilm/emberfilm-ide
 pinned by SemVer tag; every service depends on it by `from:`. Sibling services live next to this directory under
 `emberfilm-microservices/`.
 
+## The skill
+
+This repository is built to the conventions of the
+[swift-grpc-microservices-skill](https://github.com/the-braveknight/swift-grpc-microservices-skill).
+Install it (`git clone` into `~/.claude/skills/swift-grpc-microservices-skill`) and read its
+`SKILL.md` and `references/identity-and-access.md` in full before changing code here — that
+reference was largely written from this package, and describes the `Identity`, `IdentityGRPC`,
+`IdentityHTTP`, and `ServiceIdentity` products by name. The skill is the source of truth; this file
+records only what is specific to this repository. When the two disagree, the disagreement is either a
+deviation listed below or a bug in one of them; say which.
+
 ## Layout
 
 ```
@@ -44,7 +55,7 @@ swift-format format -i -r Sources   # config in .swift-format
 There is no test target. `swift test` builds nothing and reports nothing — do not read a clean
 run as evidence that a change works.
 
-Releases are git tags (`0.1.0` … `0.5.0`). A change consumers need is not delivered until it is
+Releases are git tags (`0.1.0` … `0.8.0`). A change consumers need is not delivered until it is
 tagged and their `Package.resolved` is updated; a source edit here is invisible to the consuming
 services until then. To verify a cross-repo change before tagging, `swift package edit
 emberfilm-identity --path ../emberfilm-identity` in the consumer, then `swift package unedit`.
@@ -73,8 +84,13 @@ that can disagree. Do not collapse them back into a `mint` convenience.
 `IdentityServerInterceptor` identify; neither rejects a request that carries no token. That is
 what open routes need — logging in and registering mint the first token and have no caller yet.
 On the HTTP side, insisting on a caller is `IsAuthenticatedMiddleware`'s job, added to the
-protected routes. This package ships no gRPC equivalent: a handler that needs a caller reads
-`IdentityContext.current` and refuses a `nil` one itself.
+protected routes. On gRPC this package deliberately ships no *enforcing* interceptor — a server
+interceptor is dispatched on `MethodDescriptor` and cannot read the request, so it could say "an
+admin may call this" but never "your own record, or any if you are an admin". Instead the static
+checks live in `IdentityGRPC` as `IdentityContext.requireIdentity()`, `requireUserIdentity()`,
+`requireAdminIdentity()`, and `requirePrivilegedIdentity()`; a handler calls one first and keeps
+only the check that is its own. The person-shaped ones test the role before parsing the subject,
+because a `service` credential can be issued under any name.
 
 **`UserRole` lives here, in the token.** It is part of the token's shape rather than something
 the users service owns, because every verifying service reads the claim — a copy per service
@@ -113,6 +129,12 @@ that happens to parse — taking the latter would let a caller hide a second cre
 the service ignores. The scheme is matched case-insensitively per RFC 7235, because grpc-web
 clients and proxies do send `bearer`, and an unauthenticated caller is much harder to notice
 than a rejected one.
+
+## Deviations from the skill
+
+None known. `UserRole` carries `user`, `admin`, and `service`; adding a case is a breaking change
+for every verifying service — a token with a role a verifier cannot decode is refused as
+`unauthenticated` — so every service bumps to the new tag before the first such token is minted.
 
 ## Conventions
 
