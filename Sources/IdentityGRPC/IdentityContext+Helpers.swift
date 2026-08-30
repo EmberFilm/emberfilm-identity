@@ -10,8 +10,9 @@ import FoundationEssentials
 #else
 import Foundation
 #endif
-import Identity
+
 import GRPCCore
+import Identity
 
 /// The checks a gRPC handler makes before acting on a caller.
 ///

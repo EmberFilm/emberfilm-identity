@@ -20,7 +20,7 @@ public struct IdentitySigner: Sendable {
     public struct Configuration: Sendable {
         public let issuer: String
         public let privateKey: EdDSA.PrivateKey
-        
+
         public init(issuer: String, privateKey: EdDSA.PrivateKey) {
             self.issuer = issuer
             self.privateKey = privateKey

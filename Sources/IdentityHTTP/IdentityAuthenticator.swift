@@ -5,9 +5,9 @@
 //  Created by Zaid Rahhawi on 8/20/26.
 //
 
-import Identity
 import Hummingbird
 import HummingbirdAuth
+import Identity
 
 /// Resolves the caller's ``Identity`` from the request's bearer token and makes it available for
 /// the rest of the request.

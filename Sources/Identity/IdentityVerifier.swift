@@ -15,7 +15,7 @@ import JWTKit
 public struct IdentityVerifier: Sendable {
     public struct Configuration: Sendable {
         public let publicKey: EdDSA.PublicKey
-        
+
         public init(publicKey: EdDSA.PublicKey) {
             self.publicKey = publicKey
         }
@@ -23,7 +23,7 @@ public struct IdentityVerifier: Sendable {
 
     private let keys: JWTKeyCollection
     private let configuration: Configuration
-    
+
     public init(configuration: Configuration) async throws {
         self.configuration = configuration
 

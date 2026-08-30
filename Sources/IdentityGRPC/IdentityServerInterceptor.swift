@@ -5,8 +5,8 @@
 //  Created by Zaid Rahhawi on 8/20/26.
 //
 
-import Identity
 import GRPCCore
+import Identity
 
 /// Identifies the caller of an RPC from its bearer token, without requiring there to be one.
 ///
