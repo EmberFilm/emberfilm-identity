@@ -56,7 +56,7 @@ public struct IdentitySigner: Sendable {
     /// caller says about it as two readings of the clock that can disagree.
     public func makeIdentity(
         subject: String,
-        role: UserRole,
+        role: Role,
         expiration: TimeInterval
     ) -> Identity {
         let now = Date.now

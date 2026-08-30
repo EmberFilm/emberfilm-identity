@@ -1,5 +1,5 @@
 //
-//  UserRole.swift
+//  Role.swift
 //  emberfilm-identity
 //
 //  Created by Zaid Rahhawi on 8/23/26.
@@ -14,7 +14,7 @@
 /// Carrying it in the token is what lets a service authorize a caller without asking the users
 /// service who they are. The cost is that a change of role does not take effect until the token
 /// is next refreshed, which is the same bound that already applies to a revoked session.
-public enum UserRole: String, Codable, Sendable {
+public enum Role: String, Codable, Sendable {
     case user
     case admin
 

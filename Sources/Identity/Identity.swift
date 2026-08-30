@@ -9,14 +9,14 @@ import JWTKit
 
 public struct Identity: JWTPayload {
     public let subject: String
-    public let role: UserRole
+    public let role: Role
     public let issuer: IssuerClaim
     public let issuedAt: IssuedAtClaim
     public let expiration: ExpirationClaim
 
     init(
         subject: String,
-        role: UserRole,
+        role: Role,
         issuer: IssuerClaim,
         issuedAt: IssuedAtClaim,
         expiration: ExpirationClaim
