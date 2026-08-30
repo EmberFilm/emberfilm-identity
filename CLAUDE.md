@@ -92,7 +92,7 @@ checks live in `IdentityGRPC` as `IdentityContext.requireIdentity()`, `requireUs
 only the check that is its own. The person-shaped ones test the role before parsing the subject,
 because a `service` credential can be issued under any name.
 
-**`UserRole` lives here, in the token.** It is part of the token's shape rather than something
+**`Role` lives here, in the token.** It is part of the token's shape rather than something
 the users service owns, because every verifying service reads the claim — a copy per service
 would be the same contract restated once per reader. Carrying it in the token is what lets a
 service authorize a caller without a round trip to the users service; the cost is that a role
@@ -132,7 +132,7 @@ than a rejected one.
 
 ## Deviations from the skill
 
-None known. `UserRole` carries `user`, `admin`, and `service`; adding a case is a breaking change
+None known. `Role` carries `user`, `admin`, and `service`; adding a case is a breaking change
 for every verifying service — a token with a role a verifier cannot decode is refused as
 `unauthenticated` — so every service bumps to the new tag before the first such token is minted.
 

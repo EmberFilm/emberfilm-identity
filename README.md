@@ -226,7 +226,7 @@ once and the call resent.
 }
 ```
 
-`role` is a `UserRole` — `user`, `admin`, or `service`. It rides in the token so a service can authorize a
+`role` is a `Role` — `user`, `admin`, or `service`. It rides in the token so a service can authorize a
 caller without asking the users service who they are; the cost is that a change of role does not
 take effect until the token is next refreshed.
 
